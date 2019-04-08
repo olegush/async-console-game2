@@ -20,15 +20,25 @@ DOWN_KEY_CODE = 258
 
 STEP_SPACESHIP = 1
 
+
 def main(canvas):
-    rocket_frames = [get_frame('frames/rocket_frame_1.txt'), get_frame('frames/rocket_frame_2.txt')]
+    rocket_frames = [
+        get_frame('frames/rocket_frame_1.txt'),
+        get_frame('frames/rocket_frame_2.txt')
+    ]
     row_max, column_max = canvas.getmaxyx()
 
     # Create stars coordinates list and remove duplicates.
-    coordinates = set([(random.randint(1,row_max-2), random.randint(1,column_max-2)) for star in range(TOTAL_STARS)])
+    coordinates = set([
+        (random.randint(1, row_max-2), random.randint(1, column_max-2))
+        for star in range(TOTAL_STARS)
+    ])
 
     # Create coroutines list.
-    coroutines = [blink(canvas, coordinate[0], coordinate[1], symbol=random.choice(STARS_TYPES)) for coordinate in coordinates]
+    coroutines = [
+        blink(canvas, coordinate[0], coordinate[1], symbol=random.choice(STARS_TYPES))
+        for coordinate in coordinates
+    ]
     coroutines.append(animate_spaceship(canvas, row_max/2, column_max/2, rocket_frames))
     coroutines.append(fire(canvas, row_max/2, column_max/2, rows_speed=-0.6, columns_speed=0))
     curses.curs_set(False)
@@ -43,29 +53,31 @@ def main(canvas):
                 coroutines.pop()
         time.sleep(TIC_TIMEOUT)
 
+
 async def blink(canvas, row, column, symbol='*'):
     # Run stars blinking in endless loop.
     while True:
         # delay before coroutine starting
-        for tic in range(random.randint(0,DELAY_DIM)):
+        for _ in range(random.randint(0, DELAY_DIM)):
             await asyncio.sleep(0)
 
         # Draw a star by coordinates and brightness.
         canvas.addstr(row, column, symbol, curses.A_DIM)
-        for tic in range(DELAY_DIM):
+        for _ in range(DELAY_DIM):
             await asyncio.sleep(0)
 
         canvas.addstr(row, column, symbol)
-        for tic in range(DELAY_NORMAL):
+        for _ in range(DELAY_NORMAL):
             await asyncio.sleep(0)
 
         canvas.addstr(row, column, symbol, curses.A_BOLD)
-        for tic in range(DELAY_BOLD):
+        for _ in range(DELAY_BOLD):
             await asyncio.sleep(0)
 
         canvas.addstr(row, column, symbol)
-        for tic in range(DELAY_NORMAL):
+        for _ in range(DELAY_NORMAL):
             await asyncio.sleep(0)
+
 
 async def fire(canvas, start_row, start_column, rows_speed=-0.6, columns_speed=0):
     # Display shot animation. Direction and speed can be specified.
@@ -96,6 +108,7 @@ async def fire(canvas, start_row, start_column, rows_speed=-0.6, columns_speed=0
         row += rows_speed
         column += columns_speed
 
+
 def get_coordinate(direction, coordinate, limits):
     # Get new coordinate inside canvas limits.
     if coordinate >= limits[1]:
@@ -107,6 +120,7 @@ def get_coordinate(direction, coordinate, limits):
     else:
         coordinate += direction
     return coordinate
+
 
 async def animate_spaceship(canvas, start_row, start_column, frames):
     canvas.nodelay(True)
@@ -132,12 +146,14 @@ async def animate_spaceship(canvas, start_row, start_column, frames):
         await asyncio.sleep(0)
         draw_frame(canvas, row, column, frames[0], negative=True)
 
+
 def get_frame(path):
     with open(path) as file:
         return file.read()
 
+
 def read_controls(canvas):
-    #Read keys pressed and returns tuple witl controls state.
+    # Read keys pressed and returns tuple witl controls state.
 
     rows_direction = columns_direction = 0
     space_pressed = False
@@ -186,14 +202,15 @@ def draw_frame(canvas, start_row, start_column, text, negative=False):
             if column >= columns_number:
                 break
 
-            # Check that current position it is not in a lower right corner of the window
-            # Curses will raise exception in that case. Don`t ask why…
+            # Check that current position it is not in a lower right corner of
+            # the window. Curses will raise exception in that case. Don`t ask why…
             # https://docs.python.org/3/library/curses.html#curses.window.addch
             if row == rows_number - 1 and column == columns_number - 1:
                 continue
 
             symbol = symbol if not negative else ' '
             canvas.addch(row, column, symbol)
+
 
 def get_frame_size(text):
     # Calculate size of multiline text fragment.
