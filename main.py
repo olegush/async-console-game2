@@ -22,6 +22,11 @@ STEP_SPACESHIP = 1
 
 
 def main(canvas):
+    """Make some preparations, create coroutines and run event loop."""
+
+    curses.curs_set(False)
+    canvas.nodelay(True)
+
     rocket_frames = [
         get_frame('frames/rocket_frame_1.txt'),
         get_frame('frames/rocket_frame_2.txt')
@@ -36,12 +41,17 @@ def main(canvas):
 
     # Create coroutines list.
     coroutines = [
-        blink(canvas, coordinate[0], coordinate[1], symbol=random.choice(STARS_TYPES))
-        for coordinate in coordinates
+        animate_star(
+            canvas,
+            row,
+            column,
+            offset_ticks=random.randint(0, DELAY_DIM),
+            symbol=random.choice(STARS_TYPES)
+        )
+        for row, column in coordinates
     ]
     coroutines.append(animate_spaceship(canvas, row_max/2, column_max/2, rocket_frames))
-    coroutines.append(fire(canvas, row_max/2, column_max/2, rows_speed=-0.6, columns_speed=0))
-    curses.curs_set(False)
+    coroutines.append(animate_fire(canvas, row_max/2, column_max/2, rows_speed=-0.6, columns_speed=0))
 
     # Run all coroutines in endless loop with interval.
     while True:
@@ -50,15 +60,16 @@ def main(canvas):
                 coroutine.send(None)
                 canvas.refresh()
             except StopIteration:
-                coroutines.pop()
+                coroutines.remove(coroutine)
         time.sleep(TIC_TIMEOUT)
 
 
-async def blink(canvas, row, column, symbol='*'):
-    # Run stars blinking in endless loop.
+async def animate_star(canvas, row, column, offset_ticks, symbol='*'):
+    """Draw blinking star."""
+
     while True:
         # delay before coroutine starting
-        for _ in range(random.randint(0, DELAY_DIM)):
+        for _ in range(offset_ticks):
             await asyncio.sleep(0)
 
         # Draw a star by coordinates and brightness.
@@ -79,8 +90,8 @@ async def blink(canvas, row, column, symbol='*'):
             await asyncio.sleep(0)
 
 
-async def fire(canvas, start_row, start_column, rows_speed=-0.6, columns_speed=0):
-    # Display shot animation. Direction and speed can be specified.
+async def animate_fire(canvas, start_row, start_column, rows_speed=-0.6, columns_speed=0):
+    """Display shot animation. Direction and speed can be specified."""
 
     row, column = start_row, start_column
 
@@ -110,11 +121,13 @@ async def fire(canvas, start_row, start_column, rows_speed=-0.6, columns_speed=0
 
 
 def get_coordinate(direction, coordinate, limits):
-    # Get new coordinate inside canvas limits.
-    if coordinate >= limits[1]:
+    """Get new spaceship coordinate inside canvas limits."""
+
+    limit_min, limit_max = limits
+    if coordinate >= limit_max:
         if direction < 0:
             coordinate += direction
-    elif coordinate <= limits[0]:
+    elif coordinate <= limit_min:
         if direction > 0:
             coordinate += direction
     else:
@@ -123,37 +136,42 @@ def get_coordinate(direction, coordinate, limits):
 
 
 async def animate_spaceship(canvas, start_row, start_column, frames):
-    canvas.nodelay(True)
+    """Animate spaceship and get user control with arrow keys."""
+
+    frame1, frame2 = frames
     row = start_row
     column = start_column
 
     # Get canvas limits.
-    row_limits = (0, canvas.getmaxyx()[0] - get_frame_size(frames[0])[0])
-    column_limits = (0, canvas.getmaxyx()[1] - get_frame_size(frames[0])[1])
+    row_max, column_max = canvas.getmaxyx()
+    spaceship_height,  spaceship_width = get_frame_size(frame1)
+    row_limits = (0, row_max - spaceship_height)
+    column_limits = (0, column_max - spaceship_width)
 
     while True:
-        direction = read_controls(canvas)
+        rows_direction, columns_direction, space_pressed = read_controls(canvas)
 
         # Get new coordinates.
-        row = get_coordinate(direction[0], row, row_limits)
-        column = get_coordinate(direction[1], column, column_limits)
+        row = get_coordinate(rows_direction, row, row_limits)
+        column = get_coordinate(columns_direction, column, column_limits)
 
         # Draw animation.
-        draw_frame(canvas, row, column, frames[1], negative=False)
+        draw_frame(canvas, row, column, frame2, negative=False)
         await asyncio.sleep(0)
-        draw_frame(canvas, row, column, frames[1], negative=True)
-        draw_frame(canvas, row, column, frames[0], negative=False)
+        draw_frame(canvas, row, column, frame2, negative=True)
+        draw_frame(canvas, row, column, frame1, negative=False)
         await asyncio.sleep(0)
-        draw_frame(canvas, row, column, frames[0], negative=True)
+        draw_frame(canvas, row, column, frame1, negative=True)
 
 
 def get_frame(path):
+    """Get frame for animation from text file."""
     with open(path) as file:
         return file.read()
 
 
 def read_controls(canvas):
-    # Read keys pressed and returns tuple witl controls state.
+    """Read keys pressed and returns tuple witl controls state."""
 
     rows_direction = columns_direction = 0
     space_pressed = False
@@ -184,8 +202,9 @@ def read_controls(canvas):
 
 
 def draw_frame(canvas, start_row, start_column, text, negative=False):
-    # Draw multiline text fragment on canvas.
-    # Erase text instead of drawing if negative=True is specified.
+    """Draw multiline text fragment on canvas.
+    Erase text instead of drawing if negative=True is specified."""
+
     rows_number, columns_number = canvas.getmaxyx()
 
     for row, line in enumerate(text.splitlines(), round(start_row)):
@@ -213,7 +232,7 @@ def draw_frame(canvas, start_row, start_column, text, negative=False):
 
 
 def get_frame_size(text):
-    # Calculate size of multiline text fragment.
+    """Calculate size of multiline text fragment."""
     lines = text.splitlines()
     rows = len(lines)
     columns = max([len(line) for line in lines])
