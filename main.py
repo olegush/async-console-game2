@@ -64,7 +64,7 @@ def main(canvas):
         time.sleep(TIC_TIMEOUT)
 
 
-async def animate_star(canvas, row, column, offset_ticks, symbol='*'):
+async def animate_star(canvas, row, column, offset_ticks, symbol):
     """Draw blinking star."""
 
     while True:
