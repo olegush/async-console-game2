@@ -1,10 +1,12 @@
 # Async console game
 
-The script shows in terminal a spaceship on a space background with blinking stars.
- User has spaceship control with arrow keys.
+The game demonstrates Earth orbit pollution with space debris. User has
+spaceship control with arrow keys for escaping collisions with debris. Debris
+flows increasing with years. After 2020 user has plasma gun for garbage
+terminate. The game finish when spaceship collisions with any garbage piece.
 
- Game uses <a href="https://docs.python.org/3/library/curses.html">curses</a>
-  module with asynchronous way, based on <a href="https://docs.python.org/3/library/asyncio.html">asyncio</a> library.
+The game uses <a href="https://docs.python.org/3/library/curses.html">curses</a>
+module with asynchronous way, based on <a href="https://docs.python.org/3/library/asyncio.html">asyncio</a> library.
 
 
 ### How to install
@@ -21,7 +23,7 @@ $ python main.py
 
 ```
 
-![game screenshot](screenshots/async-console-game2.png)
+![game screenshot](screenshots/async-console-game3.png)
 
 
 ### Project Goals
