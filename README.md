@@ -23,7 +23,7 @@ $ python main.py
 
 ```
 
-![game screenshot](screenshots/async-console-game3.png)
+![game screenshot](screenshots/async-console-game4.png)
 
 
 ### Project Goals
