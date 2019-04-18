@@ -24,7 +24,7 @@ def get_garbage_delay_tics(year):
     if year < 1961:
         return None
     elif year < 1969:
-        return 50
+        return 25
     elif year < 1981:
         return 20
     elif year < 1995:

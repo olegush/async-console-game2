@@ -3,28 +3,28 @@ import curses
 from curses_tools import draw_frame, get_frame_size
 
 EXPLOSION_FRAMES = [
-    """\          
-           (_)    
+    """\
+           (_)
        (  (   (  (
-      () (  (  )  
-        ( )  ()   
+      () (  (  )
+        ( )  ()
     """,
     """\
-           (_)  
-       (  (   ( 
+           (_)
+       (  (   (
          (  (  )
-          )  (  
+          )  (
     """,
     """\
-            (   
-          (   ( 
+            (
+          (   (
          (     (
-          )  (  
+          )  (
     """,
     """\
-            (  
+            (
               (
-            (  
+            (
 
     """,
 ]
@@ -37,7 +37,7 @@ async def explode(canvas, center_row, center_column):
     curses.beep()
     for frame in EXPLOSION_FRAMES:
 
-        draw_frame(canvas, corner_row, corner_column, frame)
+        draw_frame(canvas, corner_row, corner_column, frame, color='yellow')
 
         await asyncio.sleep(0)
         draw_frame(canvas, corner_row, corner_column, frame, negative=True)

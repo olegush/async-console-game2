@@ -5,7 +5,7 @@ import random
 import curses, curses.panel
 import asyncio
 
-from curses_tools import draw_frame, get_frame, get_frame_size, read_controls
+from curses_tools import draw_frame, get_frame, get_frame_size, read_controls, get_colors
 from physics import update_speed
 from obstacles import Obstacle
 from explosion import explode
@@ -21,7 +21,8 @@ DELAY_BOLD = int(0.5 / TIC_TIMEOUT)
 DELAY_NORMAL = int(0.3 / TIC_TIMEOUT)
 
 SPACESHIP_STEP = 1
-SPACESHIP_FILES = ['frames/spaceship_frame_1.txt', 'frames/spaceship_frame_2.txt']
+SPACESHIP_FILE = 'frames/spaceship_frame.txt'
+SPACESHIP_FLAME_FILES = ['frames/spaceship_flame_frame_1.txt', 'frames/spaceship_flame_frame_2.txt']
 
 GARBAGE_FRAMES_DIR = 'frames/garbage'
 GARBAGE_SPEED = 0.1
@@ -30,14 +31,20 @@ YEAR_PLASMA_GUN_INVENTED = 2020
 YEAR_START = 1957
 YEARS_COUNT_SPEED = int(2 / TIC_TIMEOUT)
 
+GAMEOVER_FILE = 'frames/gameover.txt'
+
 coroutines = []
 score = 0
+colors = get_colors()
 
 
 def main(canvas):
     """Make some preparations, create coroutines and run event loop."""
 
     global coroutines, obstacles, obstacles_in_last_collisions, year
+
+
+    #canvas.addstr(10,10,'!!!!!!!!!!!',curses.color_pair(1))
 
     obstacles = []
     obstacles_in_last_collisions = set()
@@ -53,8 +60,8 @@ def main(canvas):
         for star in range(TOTAL_STARS)
     ])
 
-    # Create coroutines list. Also a few items add inside coroutines
-    # fill_orbit_with_garbage() and run_spaceship()
+    # Create coroutines list. Also add inside coroutines
+    # fill_orbit_with_garbage() and
     coroutines = [
         animate_star(
             canvas,
@@ -67,7 +74,7 @@ def main(canvas):
     ]
     coroutines.append(count_years())
     coroutines.append(show_win_info(canvas))
-    coroutines.append(animate_spaceship())
+    coroutines.append(animate_spaceship_flame())
     coroutines.append(run_spaceship(canvas, row_max/2, column_max/2))
     coroutines.append(fill_orbit_with_garbage(canvas))
 
@@ -86,7 +93,7 @@ async def show_win_info(canvas):
     """Show year and space epoch events on the left top corner. After 2020,
     when plasma gun will be invented, also show count of terminated pieces."""
 
-    global year, score
+    global year, score, colors
 
     win_info = canvas.derwin(10, 70, 1, 1)
 
@@ -94,9 +101,9 @@ async def show_win_info(canvas):
         if year in PHRASES:
             phrase = PHRASES[year]
         win_info.clrtoeol()
-        win_info.addstr(0, 0, '{}: {}'.format(year, phrase))
+        win_info.addstr(0, 0, '{}: {}'.format(year, phrase), colors['green'])
         if year > YEAR_PLASMA_GUN_INVENTED:
-            win_info.addstr(1, 0, '{} garbage objects terminated'.format(score))
+            win_info.addstr(1, 0, '{} garbage objects terminated'.format(score), colors['green'])
         win_info.refresh()
         await asyncio.sleep(0)
 
@@ -177,7 +184,7 @@ async def run_spaceship(canvas, start_row, start_column):
     """Spaceship behavoir: control with arrow keys, animate frames,
     check for collisions with garbage."""
 
-    global spaceship_frame, coroutines, obstacles
+    global spaceship_frame, spaceship_flame_frame, coroutines, obstacles
 
     row = start_row
     column = start_column
@@ -189,6 +196,7 @@ async def run_spaceship(canvas, start_row, start_column):
     column_limits = (0, column_max - spaceship_width)
 
     row_speed = column_speed = 0
+    previous_spaceship_flame_frame = ''
     previous_spaceship_frame = ''
 
     while True:
@@ -211,9 +219,12 @@ async def run_spaceship(canvas, start_row, start_column):
 
         # Animate frames.
         draw_frame(canvas, row, column, spaceship_frame)
+        draw_frame(canvas, row, column, spaceship_flame_frame, color='yellow')
         await asyncio.sleep(0)
         draw_frame(canvas, row, column, previous_spaceship_frame, negative=True)
+        draw_frame(canvas, row, column, previous_spaceship_flame_frame, negative=True)
         previous_spaceship_frame = spaceship_frame
+        previous_spaceship_flame_frame = spaceship_flame_frame
 
         # Check for collisions with garbage.
         for obstacle in obstacles:
@@ -224,13 +235,16 @@ async def run_spaceship(canvas, start_row, start_column):
                 return
 
 
-async def animate_spaceship():
+async def animate_spaceship_flame():
     """Refresh spaceship frames."""
 
-    global spaceship_frame
+    global spaceship_frame, spaceship_flame_frame
+
+    spaceship_frame = get_frame(SPACESHIP_FILE)
+
     while True:
-        for filename in SPACESHIP_FILES:
-            spaceship_frame = get_frame(filename)
+        for filename in SPACESHIP_FLAME_FILES:
+            spaceship_flame_frame = get_frame(filename)
             await asyncio.sleep(0)
 
 
@@ -242,9 +256,9 @@ async def animate_fire(canvas, start_row, start_column, rows_speed=-0.6, columns
     row, column = start_row, start_column
 
     # Animate a shot.
-    canvas.addstr(round(row), round(column), '*')
+    canvas.addstr(round(row), round(column), '*', colors['yellow'])
     await asyncio.sleep(0)
-    canvas.addstr(round(row), round(column), 'O')
+    canvas.addstr(round(row), round(column), 'O', colors['yellow'])
     await asyncio.sleep(0)
     canvas.addstr(round(row), round(column), ' ')
 
@@ -260,7 +274,7 @@ async def animate_fire(canvas, start_row, start_column, rows_speed=-0.6, columns
 
     # Animate a shot path.
     while 0 < row < max_row and 0 < column < max_column:
-        canvas.addstr(round(row), round(column), symbol)
+        canvas.addstr(round(row), round(column), symbol, colors['yellow'])
         await asyncio.sleep(0)
         canvas.addstr(round(row), round(column), ' ')
         row += rows_speed
@@ -302,14 +316,7 @@ async def sleep(delay):
 async def show_gameover(canvas):
     """Show Game Over if spaceship collision with garbage has been."""
 
-    GAMEOVER_FRAME = '''
-    ██████╗  █████╗ ███╗   ███╗███████╗     ██████╗ ██╗   ██╗███████╗██████╗
-    ██╔════╝ ██╔══██╗████╗ ████║██╔════╝    ██╔═══██╗██║   ██║██╔════╝██╔══██╗
-    ██║  ███╗███████║██╔████╔██║█████╗      ██║   ██║██║   ██║█████╗  ██████╔╝
-    ██║   ██║██╔══██║██║╚██╔╝██║██╔══╝      ██║   ██║╚██╗ ██╔╝██╔══╝  ██╔══██╗
-    ╚██████╔╝██║  ██║██║ ╚═╝ ██║███████╗    ╚██████╔╝ ╚████╔╝ ███████╗██║  ██║
-    ╚═════╝ ╚═╝  ╚═╝╚═╝     ╚═╝╚══════╝     ╚═════╝   ╚═══╝  ╚══════╝╚═╝  ╚═╝
-    '''
+    GAMEOVER_FRAME = get_frame(GAMEOVER_FILE)
 
     rows_number, columns_number = canvas.getmaxyx()
     height_gameover, width_gameover = get_frame_size(GAMEOVER_FRAME)
@@ -317,10 +324,13 @@ async def show_gameover(canvas):
     column_gameover = columns_number / 2 - width_gameover / 2
 
     while True:
-        draw_frame(canvas, row_gameover, column_gameover, GAMEOVER_FRAME)
+        draw_frame(canvas, row_gameover, column_gameover, GAMEOVER_FRAME, color='red')
         await asyncio.sleep(0)
 
 
 if __name__ == '__main__':
     curses.update_lines_cols()
+    curses.initscr()
+    curses.start_color()
+
     curses.wrapper(main)

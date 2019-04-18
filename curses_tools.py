@@ -1,8 +1,29 @@
+import curses
+
 SPACE_KEY_CODE = 32
 LEFT_KEY_CODE = 260
 RIGHT_KEY_CODE = 261
 UP_KEY_CODE = 259
 DOWN_KEY_CODE = 258
+
+def get_colors():
+    global colors
+
+    curses.initscr()
+    curses.start_color()
+    curses.init_pair(1, curses.COLOR_WHITE, curses.COLOR_BLACK)
+    curses.init_pair(2, curses.COLOR_YELLOW, curses.COLOR_BLACK)
+    curses.init_pair(3, curses.COLOR_RED, curses.COLOR_BLACK)
+    curses.init_pair(4, curses.COLOR_GREEN, curses.COLOR_BLACK)
+    curses.init_pair(5, curses.COLOR_BLUE, curses.COLOR_BLACK)
+    colors = {
+      'white': curses.color_pair(1),
+      'yellow': curses.color_pair(2),
+      'red': curses.color_pair(3),
+      'green': curses.color_pair(4),
+      'blue': curses.color_pair(5),
+      }
+    return colors
 
 
 def get_frame(path):
@@ -42,9 +63,11 @@ def read_controls(canvas):
     return rows_direction, columns_direction, space_pressed
 
 
-def draw_frame(canvas, start_row, start_column, text, negative=False):
+def draw_frame(canvas, start_row, start_column, text, color='white', negative=False):
     """Draw multiline text fragment on canvas. Erase text instead of drawing
     if negative=True is specified."""
+
+    global colors
 
     rows_number, columns_number = canvas.getmaxyx()
 
@@ -72,7 +95,7 @@ def draw_frame(canvas, start_row, start_column, text, negative=False):
                 continue
 
             symbol = symbol if not negative else ' '
-            canvas.addch(row, column, symbol)
+            canvas.addstr(row, column, symbol, colors[color])
 
 
 def get_frame_size(text):
