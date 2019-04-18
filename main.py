@@ -20,6 +20,8 @@ DELAY_DIM = int(2 / TIC_TIMEOUT)
 DELAY_BOLD = int(0.5 / TIC_TIMEOUT)
 DELAY_NORMAL = int(0.3 / TIC_TIMEOUT)
 
+INTRO_FILE = 'frames/intro.txt'
+
 SPACESHIP_STEP = 1
 SPACESHIP_FILE = 'frames/spaceship_frame.txt'
 SPACESHIP_FLAME_FILES = ['frames/spaceship_flame_frame_1.txt', 'frames/spaceship_flame_frame_2.txt']
@@ -37,6 +39,15 @@ coroutines = []
 score = 0
 colors = get_colors()
 
+def intro(canvas):
+    INTRO_FRAME = get_frame(INTRO_FILE)
+
+    rows_number, columns_number = canvas.getmaxyx()
+    height_intro, width_intro = get_frame_size(INTRO_FRAME)
+    row_intro = rows_number / 2 - height_intro / 2
+    column_intro = columns_number / 2 - width_intro / 2
+
+    draw_frame(canvas, row_intro, column_intro, INTRO_FRAME)
 
 def main(canvas):
     """Make some preparations, create coroutines and run event loop."""
@@ -53,6 +64,8 @@ def main(canvas):
     canvas.nodelay(True)
 
     row_max, column_max = canvas.getmaxyx()
+
+    intro(canvas)
 
     # Create stars coordinates list and remove duplicates.
     coordinates = set([
@@ -75,7 +88,7 @@ def main(canvas):
     coroutines.append(count_years())
     coroutines.append(show_win_info(canvas))
     coroutines.append(animate_spaceship_flame())
-    coroutines.append(run_spaceship(canvas, row_max/2, column_max/2))
+    coroutines.append(run_spaceship(canvas, int(row_max/1.5), column_max/2))
     coroutines.append(fill_orbit_with_garbage(canvas))
 
     # Run all coroutines in endless loop with interval TIC_TIMEOUT.
