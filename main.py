@@ -7,7 +7,7 @@ import asyncio
 
 from curses_tools import draw_frame, get_frame, get_frame_size, read_controls, get_colors
 from physics import update_speed
-from obstacles import Obstacle
+from obstacles import Obstacle, show_obstacles
 from explosion import explode
 from game_scenario import PHRASES, get_garbage_delay_tics
 
@@ -28,6 +28,7 @@ SPACESHIP_FLAME_FILES = ['frames/spaceship_flame_frame_1.txt', 'frames/spaceship
 
 GARBAGE_FRAMES_DIR = 'frames/garbage'
 GARBAGE_SPEED = 0.1
+SHOW_OBSTACLES_BORDERS = False
 
 YEAR_PLASMA_GUN_INVENTED = 2020
 YEAR_START = 1957
@@ -40,22 +41,19 @@ score = 0
 colors = get_colors()
 
 def intro(canvas):
-    INTRO_FRAME = get_frame(INTRO_FILE)
+    intro_frame = get_frame(INTRO_FILE)
 
     rows_number, columns_number = canvas.getmaxyx()
-    height_intro, width_intro = get_frame_size(INTRO_FRAME)
+    height_intro, width_intro = get_frame_size(intro_frame)
     row_intro = rows_number / 2 - height_intro / 2
     column_intro = columns_number / 2 - width_intro / 2
 
-    draw_frame(canvas, row_intro, column_intro, INTRO_FRAME)
+    draw_frame(canvas, row_intro, column_intro, intro_frame)
 
 def main(canvas):
     """Make some preparations, create coroutines and run event loop."""
 
     global coroutines, obstacles, obstacles_in_last_collisions, year
-
-
-    #canvas.addstr(10,10,'!!!!!!!!!!!',curses.color_pair(1))
 
     obstacles = []
     obstacles_in_last_collisions = set()
@@ -73,8 +71,7 @@ def main(canvas):
         for star in range(TOTAL_STARS)
     ])
 
-    # Create coroutines list. Also add inside coroutines
-    # fill_orbit_with_garbage() and
+    # Create coroutines list.
     coroutines = [
         animate_star(
             canvas,
@@ -85,10 +82,13 @@ def main(canvas):
         )
         for row, column in coordinates
     ]
+    win_info = canvas.derwin(10, 70, 1, 1)
     coroutines.append(count_years())
-    coroutines.append(show_win_info(canvas))
+    coroutines.append(show_win_info(canvas, win_info))
+
     coroutines.append(animate_spaceship_flame())
     coroutines.append(run_spaceship(canvas, int(row_max/1.5), column_max/2))
+
     coroutines.append(fill_orbit_with_garbage(canvas))
 
     # Run all coroutines in endless loop with interval TIC_TIMEOUT.
@@ -102,13 +102,11 @@ def main(canvas):
         time.sleep(TIC_TIMEOUT)
 
 
-async def show_win_info(canvas):
+async def show_win_info(canvas, win_info):
     """Show year and space epoch events on the left top corner. After 2020,
     when plasma gun will be invented, also show count of terminated pieces."""
 
     global year, score, colors
-
-    win_info = canvas.derwin(10, 70, 1, 1)
 
     while True:
         if year in PHRASES:
@@ -117,7 +115,7 @@ async def show_win_info(canvas):
         win_info.addstr(0, 0, '{}: {}'.format(year, phrase), colors['green'])
         if year > YEAR_PLASMA_GUN_INVENTED:
             win_info.addstr(1, 0, '{} garbage objects terminated'.format(score), colors['green'])
-        win_info.refresh()
+        win_info.noutrefresh()
         await asyncio.sleep(0)
 
 
@@ -149,7 +147,8 @@ async def fill_orbit_with_garbage(canvas):
             garbage_frame = random.choice(garbage_frames)
             garbage_speed = random.randint(2, 10) * GARBAGE_SPEED
             coroutines.append(fly_garbage(canvas, column, garbage_frame, garbage_speed))
-            #coroutines.append(show_obstacles(canvas, obstacles))
+            if SHOW_OBSTACLES_BORDERS:
+                coroutines.append(show_obstacles(canvas, obstacles))
             await sleep(get_garbage_delay_tics(year))
         await asyncio.sleep(0)
 
@@ -345,5 +344,4 @@ if __name__ == '__main__':
     curses.update_lines_cols()
     curses.initscr()
     curses.start_color()
-
     curses.wrapper(main)
