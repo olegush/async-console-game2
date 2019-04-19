@@ -82,7 +82,7 @@ def main(canvas):
         )
         for row, column in coordinates
     ]
-    win_info = canvas.derwin(10, 70, 1, 1)
+    win_info = canvas.derwin(2, column_max-1, 1, 1)
     coroutines.append(count_years())
     coroutines.append(show_win_info(canvas, win_info))
 
