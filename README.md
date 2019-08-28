@@ -1,6 +1,6 @@
 # Async console game
 
-The game demonstrates Earth orbit pollution with space debris. User has
+[The game](https://devbuzz.ru/spacedebris/) demonstrates Earth orbit pollution with space debris. User has
 spaceship control with arrow keys for escaping collisions with debris. Debris
 flows increasing with years. After 2020 user has plasma gun for garbage
 terminate. The game finish when spaceship collisions with any garbage piece.
